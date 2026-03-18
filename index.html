@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Väder Falun — SMHI</title>
+  <title>Väder — SMHI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -35,24 +36,23 @@
       min-height: 100vh;
     }
 
-    /* ── Layout ─────────────────────────────────────── */
     .app {
       max-width: 900px;
       margin: 0 auto;
       padding: 20px 16px 40px;
     }
 
-    /* ── Header ─────────────────────────────────────── */
+    /* ── Header ─────────────────────────────────── */
     header {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
       flex-wrap: wrap;
     }
 
-    .header-left { display: flex; align-items: baseline; gap: 10px; }
+    .header-left { display: flex; align-items: baseline; gap: 10px; flex-shrink: 0; }
 
     h1 {
       font-size: 18px;
@@ -68,9 +68,8 @@
       font-size: 12px;
       color: var(--muted);
       font-weight: 500;
+      white-space: nowrap;
     }
-
-    .location-badge svg { opacity: 0.5; }
 
     .live-dot {
       width: 6px; height: 6px;
@@ -81,26 +80,200 @@
       flex-shrink: 0;
     }
 
-    @keyframes livePulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+    @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ── Search ─────────────────────────────────── */
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      max-width: 320px;
     }
 
-    .header-right {
+    .search-input-row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 12px;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 10px;
+      transition: border-color 0.15s;
+    }
+
+    .search-input-row:focus-within {
+      border-color: var(--accent);
+    }
+
+    .search-icon {
+      color: var(--muted);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      padding: 8px 0;
+      min-width: 0;
+    }
+
+    .search-input::placeholder { color: var(--muted); }
+
+    .search-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--surface2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+      flex-shrink: 0;
+    }
+
+    .search-spinner.show { display: block; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .search-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 1000;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .search-dropdown.open { display: block; }
+
+    .search-result {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 9px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+
+    .search-result:last-child { border-bottom: none; }
+    .search-result:hover { background: var(--surface2); }
+
+    .search-result-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .search-result-sub {
+      font-size: 11px;
       color: var(--muted);
     }
 
-    /* ── Time Slider ─────────────────────────────────── */
+    .search-no-results {
+      padding: 12px;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .search-error {
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #fca5a5;
+    }
+
+    /* ── Map ─────────────────────────────────────── */
+    .map-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 12px;
+      background: var(--surface);
+    }
+
+    .map-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .map-card-header .card-label { margin: 0; }
+
+    .map-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .map-toggle:hover { color: var(--text); border-color: var(--border-hover); }
+
+    #mapContainer {
+      height: 220px;
+      transition: height 0.25s ease;
+    }
+
+    #mapContainer.collapsed { height: 0; }
+
+    /* Leaflet dark overrides */
+    .leaflet-container {
+      background: #141414;
+    }
+
+    .leaflet-control-attribution {
+      background: rgba(0,0,0,0.6) !important;
+      color: #555 !important;
+      font-size: 9px !important;
+    }
+
+    .leaflet-control-attribution a { color: #666 !important; }
+
+    .leaflet-control-zoom a {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border-color: var(--border) !important;
+    }
+
+    .leaflet-control-zoom a:hover {
+      background: var(--surface2) !important;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: var(--surface) !important;
+      color: var(--text) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+    }
+
+    .leaflet-popup-tip { background: var(--surface) !important; }
+
+    /* ── Time Slider ─────────────────────────────── */
     .time-control {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 14px 16px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     .time-header {
@@ -109,6 +282,7 @@
       justify-content: space-between;
       margin-bottom: 12px;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
     .time-label {
@@ -149,16 +323,6 @@
       letter-spacing: -0.2px;
     }
 
-    .time-offset {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    /* Custom range slider */
-    .slider-wrap {
-      position: relative;
-    }
-
     input[type=range] {
       -webkit-appearance: none;
       width: 100%;
@@ -177,8 +341,7 @@
 
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 16px;
-      height: 16px;
+      width: 16px; height: 16px;
       border-radius: 50%;
       background: #fff;
       box-shadow: 0 1px 4px rgba(0,0,0,0.6), 0 0 0 2px var(--accent);
@@ -205,13 +368,9 @@
       margin-top: 6px;
     }
 
-    .slider-tick {
-      font-size: 10px;
-      color: var(--muted2);
-      text-align: center;
-    }
+    .slider-tick { font-size: 10px; color: var(--muted2); }
 
-    /* ── Main grid ───────────────────────────────────── */
+    /* ── Main grid ───────────────────────────────── */
     .main-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -219,11 +378,9 @@
       margin-bottom: 12px;
     }
 
-    @media (max-width: 560px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
+    @media (max-width: 560px) { .main-grid { grid-template-columns: 1fr; } }
 
-    /* ── Cards ───────────────────────────────────────── */
+    /* ── Cards ───────────────────────────────────── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -243,13 +400,7 @@
       margin-bottom: 10px;
     }
 
-    /* Temperature card */
-    .temp-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 6px;
-      margin-bottom: 6px;
-    }
+    .temp-row { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 6px; }
 
     .temp-big {
       font-size: 52px;
@@ -260,20 +411,9 @@
       transition: color 0.4s;
     }
 
-    .temp-unit-big {
-      font-size: 22px;
-      font-weight: 500;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
+    .temp-unit-big { font-size: 22px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
 
-    .temp-meta {
-      display: flex;
-      gap: 12px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
+    .temp-meta { font-size: 12px; color: var(--muted); }
     .temp-meta span { color: var(--text); font-weight: 500; }
 
     .weather-condition {
@@ -288,54 +428,23 @@
 
     .condition-icon { font-size: 18px; }
 
-    /* Wind card */
-    .wind-main {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
+    /* Wind */
+    .wind-main { display: flex; align-items: center; gap: 16px; }
 
-    .compass-wrap {
-      position: relative;
-      width: 80px; height: 80px;
-      flex-shrink: 0;
-    }
-
-    .compass-svg {
-      width: 100%; height: 100%;
-    }
-
+    .compass-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+    .compass-svg { width: 100%; height: 100%; }
     .compass-arrow {
       transform-origin: 40px 40px;
-      transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.8s cubic-bezier(0.34,1.56,0.64,1);
     }
 
     .wind-data { flex: 1; }
-
-    .wind-speed-val {
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: -1px;
-      line-height: 1;
-    }
-
-    .wind-speed-unit {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-
-    .wind-details {
-      font-size: 12px;
-      color: var(--muted);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
+    .wind-speed-val { font-size: 32px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+    .wind-speed-unit { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .wind-details { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
     .wind-details b { color: var(--text); font-weight: 500; }
 
-    /* Metrics grid */
+    /* Metrics */
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -343,9 +452,7 @@
       margin-bottom: 12px;
     }
 
-    @media (max-width: 420px) {
-      .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-    }
+    @media (max-width: 420px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
 
     .metric {
       background: var(--surface);
@@ -357,51 +464,14 @@
 
     .metric:hover { border-color: var(--border-hover); }
 
-    .metric-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-
-    .metric-name {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      color: var(--muted);
-    }
-
+    .metric-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .metric-name { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); }
     .metric-icon { font-size: 14px; opacity: 0.7; }
+    .metric-val { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; line-height: 1; color: var(--text); }
+    .metric-unit { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-    .metric-val {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      line-height: 1;
-      color: var(--text);
-    }
-
-    .metric-unit {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .mini-bar {
-      height: 2px;
-      background: var(--surface2);
-      border-radius: 1px;
-      margin-top: 8px;
-      overflow: hidden;
-    }
-
-    .mini-bar-fill {
-      height: 100%;
-      border-radius: 1px;
-      background: var(--accent);
-      transition: width 0.6s ease;
-    }
+    .mini-bar { height: 2px; background: var(--surface2); border-radius: 1px; margin-top: 8px; overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: 1px; background: var(--accent); transition: width 0.6s ease; }
 
     /* Alert */
     .alert {
@@ -429,17 +499,8 @@
       margin-bottom: 12px;
     }
 
-    .chart-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .chart-tabs {
-      display: flex;
-      gap: 4px;
-    }
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .chart-tabs { display: flex; gap: 4px; }
 
     .chart-tab {
       font-size: 12px;
@@ -453,17 +514,10 @@
       transition: all 0.15s;
     }
 
-    .chart-tab.active {
-      background: var(--surface2);
-      color: var(--text);
-    }
-
+    .chart-tab.active { background: var(--surface2); color: var(--text); }
     .chart-tab:hover:not(.active) { color: var(--text); }
 
-    canvas#mainChart {
-      width: 100% !important;
-      display: block;
-    }
+    canvas#mainChart { width: 100% !important; display: block; }
 
     /* Forecast strip */
     .forecast-card {
@@ -485,7 +539,6 @@
     }
 
     .forecast-scroll::-webkit-scrollbar { height: 3px; }
-    .forecast-scroll::-webkit-scrollbar-track { background: transparent; }
     .forecast-scroll::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
 
     .fcast-item {
@@ -494,23 +547,15 @@
       flex-direction: column;
       align-items: center;
       gap: 4px;
-      padding: 10px 10px;
+      padding: 10px;
       border-radius: 8px;
       min-width: 62px;
       transition: background 0.15s;
-      cursor: default;
       border: 1px solid transparent;
     }
 
-    .fcast-item:hover {
-      background: var(--surface2);
-      border-color: var(--border);
-    }
-
-    .fcast-item.current-mark {
-      background: var(--accent-dim);
-      border-color: rgba(59,130,246,0.25);
-    }
+    .fcast-item:hover { background: var(--surface2); border-color: var(--border); }
+    .fcast-item.current-mark { background: var(--accent-dim); border-color: rgba(59,130,246,0.25); }
 
     .fcast-time { font-size: 11px; color: var(--muted); font-weight: 500; }
     .fcast-date { font-size: 10px; color: var(--muted2); }
@@ -532,10 +577,9 @@
       flex-wrap: wrap;
     }
 
-    /* Loading */
+    /* Loader */
     .loader {
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0;
       background: var(--bg);
       z-index: 9999;
       display: flex;
@@ -555,22 +599,30 @@
       animation: spin 0.8s linear infinite;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-
     .loader-text { font-size: 13px; color: var(--muted); font-weight: 500; }
 
-    /* Temp color coding */
+    /* Temp color */
     .cold { color: #60a5fa; }
     .cool { color: #86efac; }
     .warm { color: #fbbf24; }
     .hot  { color: #f87171; }
+
+    /* Custom map marker */
+    .map-marker-pin {
+      width: 24px; height: 24px;
+      background: var(--accent);
+      border: 2px solid #fff;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
   </style>
 </head>
 <body>
 
 <div class="loader" id="loader">
   <div class="loader-spinner"></div>
-  <div class="loader-text">Hämtar data från SMHI…</div>
+  <div class="loader-text" id="loaderText">Hämtar data från SMHI…</div>
 </div>
 
 <div class="app">
@@ -580,15 +632,45 @@
     <div class="header-left">
       <h1>Väder</h1>
       <div class="location-badge">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        Falun, Dalarna
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="locationName">Falun, Dalarna</span>
       </div>
-    </div>
-    <div class="header-right">
       <div class="live-dot"></div>
-      <span id="lastFetched">–</span>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap" id="searchWrap">
+      <div class="search-input-row">
+        <span class="search-icon">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </span>
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="Sök ort i Sverige…"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <div class="search-spinner" id="searchSpinner"></div>
+      </div>
+      <div class="search-dropdown" id="searchDropdown"></div>
     </div>
   </header>
+
+  <!-- Map -->
+  <div class="map-card">
+    <div class="map-card-header">
+      <div class="card-label">Karta</div>
+      <button class="map-toggle" id="mapToggle">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="mapToggleIcon"><polyline points="18 15 12 9 6 15"/></svg>
+        Dölj
+      </button>
+    </div>
+    <div id="mapContainer">
+      <div id="map" style="height:100%;width:100%;"></div>
+    </div>
+  </div>
 
   <!-- Time Slider -->
   <div class="time-control">
@@ -597,12 +679,9 @@
       <div class="time-display">
         <span class="time-now-badge" id="timeBadge">Nu</span>
         <span class="time-datetime" id="timeDisplay">–</span>
-        <span class="time-offset" id="timeOffset"></span>
       </div>
     </div>
-    <div class="slider-wrap">
-      <input type="range" id="timeSlider" min="0" max="239" value="0" step="1">
-    </div>
+    <input type="range" id="timeSlider" min="0" max="239" value="0" step="1">
     <div class="slider-ticks">
       <span class="slider-tick">Nu</span>
       <span class="slider-tick">+2d</span>
@@ -621,56 +700,42 @@
 
   <!-- Main cards -->
   <div class="main-grid">
-
-    <!-- Temperature -->
     <div class="card">
       <div class="card-label">Temperatur</div>
       <div class="temp-row">
         <div class="temp-big" id="temperature">–</div>
         <div class="temp-unit-big">°C</div>
       </div>
-      <div class="temp-meta">
-        Känns som <span id="feelsLike">–</span>&nbsp;°C
-      </div>
+      <div class="temp-meta">Känns som <span id="feelsLike">–</span>&nbsp;°C</div>
       <div class="weather-condition">
         <span class="condition-icon" id="condIcon">–</span>
         <span id="condText">Laddar…</span>
       </div>
     </div>
 
-    <!-- Wind -->
     <div class="card">
       <div class="card-label">Vind</div>
       <div class="wind-main">
-        <!-- SVG compass -->
         <div class="compass-wrap">
           <svg class="compass-svg" viewBox="0 0 80 80">
-            <!-- Outer ring -->
             <circle cx="40" cy="40" r="36" fill="none" stroke="#222" stroke-width="1.5"/>
-            <!-- Cardinal labels -->
             <text x="40" y="10" text-anchor="middle" fill="#555" font-size="8" font-family="Inter,sans-serif">N</text>
             <text x="40" y="74" text-anchor="middle" fill="#555" font-size="8" font-family="Inter,sans-serif">S</text>
             <text x="8"  y="43" text-anchor="middle" fill="#555" font-size="8" font-family="Inter,sans-serif">V</text>
             <text x="72" y="43" text-anchor="middle" fill="#555" font-size="8" font-family="Inter,sans-serif">Ö</text>
-            <!-- Tick marks -->
             <g stroke="#333" stroke-width="1">
               <line x1="40" y1="5" x2="40" y2="11"/>
               <line x1="40" y1="69" x2="40" y2="75"/>
               <line x1="5" y1="40" x2="11" y2="40"/>
               <line x1="69" y1="40" x2="75" y2="40"/>
             </g>
-            <!-- Center dot -->
             <circle cx="40" cy="40" r="3" fill="#333"/>
-            <!-- Arrow group (rotated by JS) -->
             <g id="compassArrow" class="compass-arrow">
-              <!-- North (up) arrow: red -->
               <polygon points="40,14 37,40 43,40" fill="#ef4444" opacity="0.9"/>
-              <!-- South (down) arrow: muted -->
               <polygon points="40,66 37,40 43,40" fill="#3b82f6" opacity="0.5"/>
             </g>
           </svg>
         </div>
-
         <div class="wind-data">
           <div class="wind-speed-val" id="windSpeed">–</div>
           <div class="wind-speed-unit">m/s</div>
@@ -681,69 +746,43 @@
         </div>
       </div>
     </div>
-
   </div>
 
   <!-- Metrics -->
   <div class="metrics-grid">
-
     <div class="metric">
-      <div class="metric-top">
-        <div class="metric-name">Lufttryck</div>
-        <div class="metric-icon">🌡</div>
-      </div>
+      <div class="metric-top"><div class="metric-name">Lufttryck</div><div class="metric-icon">🌡</div></div>
       <div class="metric-val" id="pressure">–</div>
       <div class="metric-unit">hPa</div>
     </div>
-
     <div class="metric">
-      <div class="metric-top">
-        <div class="metric-name">Luftfukt.</div>
-        <div class="metric-icon">💧</div>
-      </div>
+      <div class="metric-top"><div class="metric-name">Luftfukt.</div><div class="metric-icon">💧</div></div>
       <div class="metric-val" id="humidity">–</div>
       <div class="metric-unit">%</div>
       <div class="mini-bar"><div class="mini-bar-fill" id="humBar" style="width:0"></div></div>
     </div>
-
     <div class="metric">
-      <div class="metric-top">
-        <div class="metric-name">Molntäcke</div>
-        <div class="metric-icon">☁</div>
-      </div>
+      <div class="metric-top"><div class="metric-name">Molntäcke</div><div class="metric-icon">☁</div></div>
       <div class="metric-val" id="cloud">–</div>
       <div class="metric-unit">oktanter (0–8)</div>
       <div class="mini-bar"><div class="mini-bar-fill" id="cloudBar" style="width:0"></div></div>
     </div>
-
     <div class="metric">
-      <div class="metric-top">
-        <div class="metric-name">Sikt</div>
-        <div class="metric-icon">👁</div>
-      </div>
+      <div class="metric-top"><div class="metric-name">Sikt</div><div class="metric-icon">👁</div></div>
       <div class="metric-val" id="vis">–</div>
       <div class="metric-unit">km</div>
     </div>
-
     <div class="metric">
-      <div class="metric-top">
-        <div class="metric-name">Nederbörd</div>
-        <div class="metric-icon">🌧</div>
-      </div>
+      <div class="metric-top"><div class="metric-name">Nederbörd</div><div class="metric-icon">🌧</div></div>
       <div class="metric-val" id="precip">–</div>
       <div class="metric-unit" id="precipType">mm/tim</div>
     </div>
-
     <div class="metric">
-      <div class="metric-top">
-        <div class="metric-name">Snöandel</div>
-        <div class="metric-icon">❄</div>
-      </div>
+      <div class="metric-top"><div class="metric-name">Snöandel</div><div class="metric-icon">❄</div></div>
       <div class="metric-val" id="snow">–</div>
       <div class="metric-unit">%</div>
       <div class="mini-bar"><div class="mini-bar-fill" id="snowBar" style="width:0"></div></div>
     </div>
-
   </div>
 
   <!-- Chart -->
@@ -767,34 +806,37 @@
   </div>
 
   <footer>
-    <span>Data: SMHI Öppna Data · CC BY 4.0</span>
-    <span>60.6065°N 15.6355°E · Uppdateras var 10:e minut</span>
+    <span>Data: SMHI Öppna Data · CC BY 4.0 · Karta: © OpenStreetMap</span>
+    <span id="footerCoords">60.6065°N 15.6355°E · Uppdateras var 10:e minut</span>
   </footer>
 
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// ═══════════════════════════════════════
-//  Config
-// ═══════════════════════════════════════
-const LAT = 60.6065, LON = 15.6355;
-const API = `https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/${LON}/lat/${LAT}/data.json`;
+// ═══════════════════════════════
+//  State
+// ═══════════════════════════════
+let lat = 60.6065;
+let lon = 15.6355;
+let locationLabel = 'Falun, Dalarna';
 
 let allSeries = [];
 let currentIdx = 0;
 let activeParam = 't';
 
+// ═══════════════════════════════
+//  Helpers
+// ═══════════════════════════════
 const WIND_DIRS = ['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSV','SV','VSV','V','VNV','NV','NNV'];
-const PRECIP = { 0:'Ingen', 1:'Snö', 2:'Snö/regn', 3:'Regn', 4:'Duggregn', 5:'Frysande regn', 6:'Frysande dugg' };
+const PRECIP = {0:'Ingen',1:'Snö',2:'Snö/regn',3:'Regn',4:'Duggregn',5:'Frysande regn',6:'Frysande dugg'};
 
 function getP(params, name) {
   const p = params.find(x => x.name === name);
   return p ? p.values[0] : null;
 }
 
-function compass(deg) {
-  return WIND_DIRS[Math.round(deg / 22.5) % 16];
-}
+function compass(deg) { return WIND_DIRS[Math.round(deg / 22.5) % 16]; }
 
 function weatherIcon(pcat, tcc, t) {
   if (pcat === 1 || pcat === 2) return '❄️';
@@ -833,16 +875,174 @@ function windChill(t, ws) {
 }
 
 function fmtDate(d) {
-  return d.toLocaleDateString('sv-SE', { weekday:'short', month:'short', day:'numeric' });
+  return d.toLocaleDateString('sv-SE', {weekday:'short', month:'short', day:'numeric'});
 }
 
 function fmtTime(d) {
-  return d.toLocaleTimeString('sv-SE', { hour:'2-digit', minute:'2-digit' });
+  return d.toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit'});
 }
 
-// ═══════════════════════════════════════
+// ═══════════════════════════════
+//  Map (Leaflet)
+// ═══════════════════════════════
+const map = L.map('map', { zoomControl: true, attributionControl: true })
+  .setView([lat, lon], 10);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// Custom blue marker icon
+const pinIcon = L.divIcon({
+  html: '<div style="width:14px;height:14px;background:#3b82f6;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 3px rgba(59,130,246,0.3),0 2px 6px rgba(0,0,0,0.5)"></div>',
+  className: '',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7]
+});
+
+const marker = L.marker([lat, lon], { icon: pinIcon, draggable: true }).addTo(map);
+
+marker.on('dragend', () => {
+  const pos = marker.getLatLng();
+  lat = Math.round(pos.lat * 10000) / 10000;
+  lon = Math.round(pos.lng * 10000) / 10000;
+  reverseGeocode(lat, lon);
+  fetchWeather();
+});
+
+map.on('click', (e) => {
+  lat = Math.round(e.latlng.lat * 10000) / 10000;
+  lon = Math.round(e.latlng.lng * 10000) / 10000;
+  marker.setLatLng([lat, lon]);
+  reverseGeocode(lat, lon);
+  fetchWeather();
+});
+
+// Map toggle
+const mapToggle = document.getElementById('mapToggle');
+const mapContainer = document.getElementById('mapContainer');
+const mapToggleIcon = document.getElementById('mapToggleIcon');
+let mapOpen = true;
+
+mapToggle.addEventListener('click', () => {
+  mapOpen = !mapOpen;
+  mapContainer.classList.toggle('collapsed', !mapOpen);
+  mapToggle.lastChild.textContent = mapOpen ? ' Dölj' : ' Visa';
+  mapToggleIcon.setAttribute('points', mapOpen ? '18 15 12 9 6 15' : '6 9 12 15 18 9');
+  if (mapOpen) setTimeout(() => map.invalidateSize(), 260);
+});
+
+// ═══════════════════════════════
+//  Reverse geocode (label only)
+// ═══════════════════════════════
+async function reverseGeocode(rlat, rlon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${rlat}&lon=${rlon}&format=json&accept-language=sv`;
+    const res = await fetch(url, { headers: { 'Accept-Language': 'sv' } });
+    const data = await res.json();
+    const addr = data.address || {};
+    const name = addr.city || addr.town || addr.village || addr.municipality || addr.county || 'Okänd ort';
+    const region = addr.county || addr.state || '';
+    locationLabel = region ? `${name}, ${region}` : name;
+    document.getElementById('locationName').textContent = locationLabel;
+    updateFooterCoords();
+  } catch (_) {}
+}
+
+function updateFooterCoords() {
+  document.getElementById('footerCoords').textContent =
+    `${lat}°N ${lon}°E · Uppdateras var 10:e minut`;
+}
+
+// ═══════════════════════════════
+//  Search (Nominatim)
+// ═══════════════════════════════
+const searchInput = document.getElementById('searchInput');
+const searchDropdown = document.getElementById('searchDropdown');
+const searchSpinner = document.getElementById('searchSpinner');
+let searchTimer = null;
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = searchInput.value.trim();
+  if (q.length < 2) { closeDropdown(); return; }
+  searchTimer = setTimeout(() => doSearch(q), 400);
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeDropdown(); searchInput.blur(); }
+});
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('searchWrap').contains(e.target)) closeDropdown();
+});
+
+async function doSearch(q) {
+  searchSpinner.classList.add('show');
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&countrycodes=se&addressdetails=1&accept-language=sv`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    const results = await res.json();
+    renderDropdown(results);
+  } catch (_) {
+    searchDropdown.innerHTML = '<div class="search-error">Sökning misslyckades</div>';
+    searchDropdown.classList.add('open');
+  } finally {
+    searchSpinner.classList.remove('show');
+  }
+}
+
+function renderDropdown(results) {
+  searchDropdown.innerHTML = '';
+  if (!results.length) {
+    searchDropdown.innerHTML = '<div class="search-no-results">Inga resultat hittades</div>';
+    searchDropdown.classList.add('open');
+    return;
+  }
+
+  results.forEach(r => {
+    const addr = r.address || {};
+    const name = addr.city || addr.town || addr.village || addr.municipality || r.display_name.split(',')[0];
+    const sub  = [addr.county, addr.state].filter(Boolean).join(', ') || r.type;
+
+    const el = document.createElement('div');
+    el.className = 'search-result';
+    el.innerHTML = `<div class="search-result-name">${name}</div><div class="search-result-sub">${sub}</div>`;
+    el.addEventListener('click', () => selectResult(r, name, sub));
+    searchDropdown.appendChild(el);
+  });
+
+  searchDropdown.classList.add('open');
+}
+
+function selectResult(r, name, sub) {
+  lat = Math.round(parseFloat(r.lat) * 10000) / 10000;
+  lon = Math.round(parseFloat(r.lon) * 10000) / 10000;
+  locationLabel = sub ? `${name}, ${sub}` : name;
+
+  document.getElementById('locationName').textContent = locationLabel;
+  searchInput.value = '';
+  closeDropdown();
+  updateFooterCoords();
+
+  // Pan map
+  map.setView([lat, lon], 10);
+  marker.setLatLng([lat, lon]);
+
+  fetchWeather();
+}
+
+function closeDropdown() {
+  searchDropdown.classList.remove('open');
+  searchDropdown.innerHTML = '';
+}
+
+// ═══════════════════════════════
 //  Slider
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 const slider = document.getElementById('timeSlider');
 
 slider.addEventListener('input', () => {
@@ -852,13 +1052,12 @@ slider.addEventListener('input', () => {
 });
 
 function updateSliderFill() {
-  const pct = (slider.value / slider.max) * 100;
-  slider.style.setProperty('--fill', pct + '%');
+  slider.style.setProperty('--fill', (slider.value / slider.max * 100) + '%');
 }
 
-// ═══════════════════════════════════════
-//  Render a single frame
-// ═══════════════════════════════════════
+// ═══════════════════════════════
+//  Render frame
+// ═══════════════════════════════
 function renderFrame(idx) {
   if (!allSeries.length) return;
   idx = Math.min(idx, allSeries.length - 1);
@@ -866,57 +1065,45 @@ function renderFrame(idx) {
   const p = item.parameters;
   const d = new Date(item.validTime);
 
-  // Time display
-  document.getElementById('timeDisplay').textContent =
-    fmtDate(d) + ' ' + fmtTime(d);
+  document.getElementById('timeDisplay').textContent = fmtDate(d) + ' ' + fmtTime(d);
 
   const badge = document.getElementById('timeBadge');
-  const offset = document.getElementById('timeOffset');
   if (idx === 0) {
     badge.textContent = 'Nu';
     badge.className = 'time-now-badge';
-    offset.textContent = '';
   } else {
-    const hrs = Math.round(idx); // roughly 1 per hour
-    const days = Math.floor(hrs / 24);
-    const remH = hrs % 24;
+    const days = Math.floor(idx / 24);
+    const remH = idx % 24;
     badge.textContent = '+' + (days > 0 ? days + 'd ' : '') + remH + 'h';
     badge.className = 'time-now-badge future';
-    offset.textContent = '';
   }
 
-  const t    = getP(p, 't');
-  const ws   = getP(p, 'ws');
-  const wd   = getP(p, 'wd');
-  const gust = getP(p, 'gust');
-  const msl  = getP(p, 'msl');
-  const r    = getP(p, 'r');
-  const vis  = getP(p, 'vis');
-  const tcc  = getP(p, 'tcc_mean');
-  const pcat = getP(p, 'pcat');
-  const pmean= getP(p, 'pmean');
-  const spp  = getP(p, 'spp');
+  const t     = getP(p, 't');
+  const ws    = getP(p, 'ws');
+  const wd    = getP(p, 'wd');
+  const gust  = getP(p, 'gust');
+  const msl   = getP(p, 'msl');
+  const r     = getP(p, 'r');
+  const vis   = getP(p, 'vis');
+  const tcc   = getP(p, 'tcc_mean');
+  const pcat  = getP(p, 'pcat');
+  const pmean = getP(p, 'pmean');
+  const spp   = getP(p, 'spp');
 
-  // Temperature
   const tempEl = document.getElementById('temperature');
   tempEl.textContent = t !== null ? t.toFixed(1) : '–';
   tempEl.className = 'temp-big ' + (t !== null ? tempClass(t) : '');
 
   const fl = (t !== null && ws !== null) ? windChill(t, ws) : t;
   document.getElementById('feelsLike').textContent = fl !== null ? fl.toFixed(1) : '–';
-
   document.getElementById('condIcon').textContent = weatherIcon(pcat, tcc, t);
   document.getElementById('condText').textContent = weatherText(pcat, tcc, t);
 
-  // Wind
   document.getElementById('windSpeed').textContent = ws !== null ? ws.toFixed(1) : '–';
   document.getElementById('windDir').textContent = wd !== null ? compass(wd) : '–';
   document.getElementById('windGust').textContent = gust !== null ? gust.toFixed(1) : '–';
-  if (wd !== null) {
-    document.getElementById('compassArrow').style.transform = `rotate(${wd}deg)`;
-  }
+  if (wd !== null) document.getElementById('compassArrow').style.transform = `rotate(${wd}deg)`;
 
-  // Metrics
   document.getElementById('pressure').textContent = msl !== null ? Math.round(msl) : '–';
   document.getElementById('humidity').textContent = r !== null ? Math.round(r) : '–';
   document.getElementById('humBar').style.width = r !== null ? r + '%' : '0';
@@ -929,31 +1116,29 @@ function renderFrame(idx) {
   document.getElementById('snow').textContent = sp;
   document.getElementById('snowBar').style.width = sp + '%';
 
-  // Alert
-  const alert = document.getElementById('alert');
+  const alertEl = document.getElementById('alert');
   if (ws > 14) {
     document.getElementById('alertText').textContent = `Stormvarning: ${ws.toFixed(1)} m/s`;
-    alert.classList.add('show');
+    alertEl.classList.add('show');
   } else if (pmean > 5) {
     document.getElementById('alertText').textContent = `Kraftig nederbörd: ${pmean.toFixed(1)} mm/tim`;
-    alert.classList.add('show');
+    alertEl.classList.add('show');
   } else {
-    alert.classList.remove('show');
+    alertEl.classList.remove('show');
   }
 
-  // Chart and forecast
   renderChart(idx);
   renderForecast(idx);
 }
 
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 //  Chart
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 const PARAM_META = {
-  t:   { label: '°C',  color: '#3b82f6' },
-  ws:  { label: 'm/s', color: '#22c55e' },
-  msl: { label: 'hPa', color: '#a78bfa' },
-  r:   { label: '%',   color: '#38bdf8' },
+  t:   { label:'°C',  color:'#3b82f6', rgb:'59,130,246' },
+  ws:  { label:'m/s', color:'#22c55e', rgb:'34,197,94' },
+  msl: { label:'hPa', color:'#a78bfa', rgb:'167,139,250' },
+  r:   { label:'%',   color:'#38bdf8', rgb:'56,189,248' },
 };
 
 function renderChart(startIdx) {
@@ -969,66 +1154,52 @@ function renderChart(startIdx) {
   const end = Math.min(startIdx + 24, allSeries.length);
   const slice = allSeries.slice(startIdx, end);
   const vals = slice.map(s => getP(s.parameters, activeParam) ?? 0);
-  const labels = slice.map(s => {
-    const d = new Date(s.validTime);
-    return d.getHours().toString().padStart(2, '0');
-  });
+  const labels = slice.map(s => new Date(s.validTime).getHours().toString().padStart(2,'0'));
 
-  const meta = PARAM_META[activeParam] || PARAM_META.t;
-  const accentRGB = activeParam === 't'   ? '59,130,246'
-                  : activeParam === 'ws'  ? '34,197,94'
-                  : activeParam === 'msl' ? '167,139,250'
-                  : '56,189,248';
-
-  const pad = { top: 16, bottom: 28, left: 38, right: 12 };
+  const meta = PARAM_META[activeParam];
+  const pad = { top:16, bottom:28, left:38, right:12 };
   const w = W - pad.left - pad.right;
   const h = H - pad.top - pad.bottom;
-  const minV = Math.min(...vals) - (activeParam === 'msl' ? 2 : 1);
-  const maxV = Math.max(...vals) + (activeParam === 'msl' ? 2 : 1);
+  const isMsl = activeParam === 'msl';
+  const minV = Math.min(...vals) - (isMsl ? 2 : 1);
+  const maxV = Math.max(...vals) + (isMsl ? 2 : 1);
   const range = maxV - minV || 1;
 
   cx.clearRect(0, 0, W, H);
 
-  // Horizontal grid
+  // Grid
   cx.strokeStyle = 'rgba(255,255,255,0.04)';
   cx.lineWidth = 1;
   for (let i = 0; i <= 3; i++) {
-    const y = pad.top + (h / 3) * i;
+    const y = pad.top + (h/3)*i;
     cx.beginPath(); cx.moveTo(pad.left, y); cx.lineTo(W - pad.right, y); cx.stroke();
-    const v = maxV - (range / 3) * i;
+    const v = maxV - (range/3)*i;
     cx.fillStyle = 'rgba(255,255,255,0.25)';
-    cx.font = `${9 * devicePixelRatio / devicePixelRatio}px Inter, sans-serif`;
+    cx.font = '9px Inter, sans-serif';
     cx.textAlign = 'right';
-    cx.fillText(v.toFixed(activeParam === 'msl' ? 0 : 1), pad.left - 4, y + 3);
+    cx.fillText(v.toFixed(isMsl ? 0 : 1), pad.left - 4, y + 3);
   }
-
-  // Current-time marker on chart
-  const markerX = pad.left;
-  cx.strokeStyle = 'rgba(255,255,255,0.15)';
-  cx.setLineDash([3, 4]);
-  cx.beginPath(); cx.moveTo(markerX, pad.top); cx.lineTo(markerX, pad.top + h); cx.stroke();
-  cx.setLineDash([]);
 
   if (vals.length < 2) return;
 
-  const px = (i) => pad.left + (w / (vals.length - 1)) * i;
-  const py = (v) => pad.top + h - ((v - minV) / range) * h;
+  const px = i => pad.left + (w/(vals.length-1))*i;
+  const py = v => pad.top + h - ((v-minV)/range)*h;
 
   // Area
   const grad = cx.createLinearGradient(0, pad.top, 0, H);
-  grad.addColorStop(0, `rgba(${accentRGB},0.18)`);
-  grad.addColorStop(1, `rgba(${accentRGB},0)`);
+  grad.addColorStop(0, `rgba(${meta.rgb},0.18)`);
+  grad.addColorStop(1, `rgba(${meta.rgb},0)`);
   cx.beginPath();
-  vals.forEach((v, i) => i === 0 ? cx.moveTo(px(i), py(v)) : cx.lineTo(px(i), py(v)));
-  cx.lineTo(px(vals.length - 1), pad.top + h);
-  cx.lineTo(px(0), pad.top + h);
+  vals.forEach((v,i) => i===0 ? cx.moveTo(px(i),py(v)) : cx.lineTo(px(i),py(v)));
+  cx.lineTo(px(vals.length-1), pad.top+h);
+  cx.lineTo(px(0), pad.top+h);
   cx.closePath();
   cx.fillStyle = grad;
   cx.fill();
 
   // Line
   cx.beginPath();
-  vals.forEach((v, i) => i === 0 ? cx.moveTo(px(i), py(v)) : cx.lineTo(px(i), py(v)));
+  vals.forEach((v,i) => i===0 ? cx.moveTo(px(i),py(v)) : cx.lineTo(px(i),py(v)));
   cx.strokeStyle = meta.color;
   cx.lineWidth = 1.8;
   cx.lineJoin = 'round';
@@ -1036,15 +1207,13 @@ function renderChart(startIdx) {
 
   // X labels
   cx.fillStyle = 'rgba(255,255,255,0.3)';
-  cx.font = `9px Inter, sans-serif`;
+  cx.font = '9px Inter, sans-serif';
   cx.textAlign = 'center';
-  vals.forEach((_, i) => {
-    if (i % 4 === 0) cx.fillText(labels[i] + 'h', px(i), H - 6);
-  });
+  vals.forEach((_,i) => { if (i%4===0) cx.fillText(labels[i]+'h', px(i), H-6); });
 
-  // Highlight dot for current idx on chart
+  // First point dot
   cx.beginPath();
-  cx.arc(px(0), py(vals[0]), 4, 0, Math.PI * 2);
+  cx.arc(px(0), py(vals[0]), 4, 0, Math.PI*2);
   cx.fillStyle = meta.color;
   cx.fill();
   cx.strokeStyle = '#1a1a1a';
@@ -1052,9 +1221,9 @@ function renderChart(startIdx) {
   cx.stroke();
 }
 
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 //  Forecast strip
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 function renderForecast(startIdx) {
   const strip = document.getElementById('forecastStrip');
   strip.innerHTML = '';
@@ -1082,9 +1251,9 @@ function renderForecast(startIdx) {
   }
 }
 
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 //  Chart tabs
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 document.querySelectorAll('.chart-tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
@@ -1094,41 +1263,45 @@ document.querySelectorAll('.chart-tab').forEach(btn => {
   });
 });
 
-// ═══════════════════════════════════════
-//  Fetch
-// ═══════════════════════════════════════
+// ═══════════════════════════════
+//  Fetch weather from SMHI
+// ═══════════════════════════════
 async function fetchWeather() {
+  document.getElementById('loaderText').textContent = `Hämtar data för ${locationLabel}…`;
+  document.getElementById('loader').classList.remove('gone');
+
+  const url = `https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/${lon}/lat/${lat}/data.json`;
   try {
-    const res = await fetch(API);
+    const res = await fetch(url);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     allSeries = data.timeSeries;
 
+    currentIdx = 0;
     slider.max = allSeries.length - 1;
-    slider.value = currentIdx;
+    slider.value = 0;
     updateSliderFill();
 
-    const fetched = new Date();
-    document.getElementById('lastFetched').textContent =
-      'Hämtat ' + fmtTime(fetched);
+    document.getElementById('lastFetched') &&
+      (document.getElementById('lastFetched').textContent = 'Hämtat ' + fmtTime(new Date()));
 
-    renderFrame(currentIdx);
+    renderFrame(0);
   } catch (e) {
     console.error(e);
-    document.getElementById('condText').textContent = 'Kunde inte hämta data';
+    document.getElementById('condText').textContent = 'Kunde inte hämta data för denna plats';
   } finally {
     document.getElementById('loader').classList.add('gone');
   }
 }
 
-// ═══════════════════════════════════════
-//  Resize — redraw chart
-// ═══════════════════════════════════════
+// ═══════════════════════════════
+//  Resize
+// ═══════════════════════════════
 window.addEventListener('resize', () => renderChart(currentIdx));
 
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 //  Init
-// ═══════════════════════════════════════
+// ═══════════════════════════════
 fetchWeather();
 setInterval(fetchWeather, 10 * 60 * 1000);
 </script>
