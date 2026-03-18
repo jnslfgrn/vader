@@ -80,6 +80,34 @@
       animation: pulse 2s ease-in-out infinite;
     }
 
+    .locate-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .locate-btn:hover { border-color: var(--border-hi); color: var(--text); }
+
+    .locate-btn.loading {
+      color: var(--accent);
+      border-color: rgba(59,130,246,0.3);
+      pointer-events: none;
+    }
+
+    .locate-btn.loading svg { animation: spin 0.8s linear infinite; }
+
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
     /* ── Search ──────────────────────────────── */
@@ -592,6 +620,11 @@
       <span id="locationName">Falun, Dalarna</span>
     </div>
     <div class="live-dot"></div>
+
+    <button class="locate-btn" id="locateBtn" title="Använd min position">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2" opacity=".4"/></svg>
+      Min position
+    </button>
 
     <div class="search-wrap" id="searchWrap">
       <div class="search-row">
@@ -1284,6 +1317,42 @@ async function fetchAll() {
 }
 
 window.addEventListener('resize', () => renderChart(currentIdx));
+
+// ═══════════════════════════════════════
+//  Geolocation
+// ═══════════════════════════════════════
+const locateBtn = document.getElementById('locateBtn');
+
+locateBtn.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    alert('Din webbläsare stödjer inte positionering.');
+    return;
+  }
+  locateBtn.classList.add('loading');
+  locateBtn.querySelector('span') && (locateBtn.querySelector('span').textContent = 'Letar…');
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      lat = Math.round(pos.coords.latitude  * 1e4) / 1e4;
+      lon = Math.round(pos.coords.longitude * 1e4) / 1e4;
+      locateBtn.classList.remove('loading');
+      map.setView([lat, lon], 10);
+      mainMarker.setLatLng([lat, lon]);
+      reverseGeocode(lat, lon);
+      fetchAll();
+    },
+    err => {
+      locateBtn.classList.remove('loading');
+      const msgs = {
+        1: 'Åtkomst till position nekad.',
+        2: 'Kunde inte hämta position.',
+        3: 'Timeout vid positionering.',
+      };
+      alert(msgs[err.code] || 'Positionering misslyckades.');
+    },
+    { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
+  );
+});
 
 // ═══════════════════════════════════════
 //  Init
