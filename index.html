@@ -28,7 +28,7 @@
       --radius: 10px;
     }
 
-    html, body { height: 100%; }
+    html, body { height: 100%; overflow: hidden; }
 
     body {
       background: var(--bg);
@@ -38,20 +38,69 @@
       line-height: 1.5;
     }
 
-    .app {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 14px 14px 32px;
+    /* ── Full-screen split layout ─────────────── */
+    .layout {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* LEFT — map */
+    .map-col {
+      flex: 1 1 0;
+      position: relative;
+      min-width: 0;
+    }
+
+    .map-col #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    /* RIGHT — panel */
+    .panel-col {
+      width: 360px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      flex-shrink: 0;
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px 16px;
       display: flex;
       flex-direction: column;
       gap: 10px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface3) transparent;
     }
 
-    /* ── Header ──────────────────────────────── */
+    .panel-body::-webkit-scrollbar { width: 3px; }
+    .panel-body::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+    /* Responsive: stack on narrow screens */
+    @media (max-width: 700px) {
+      .layout { flex-direction: column; overflow: auto; }
+      .map-col { height: 50vh; flex: none; }
+      .panel-col { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+      html, body { overflow: auto; }
+    }
+
+    /* ── Header (inside panel-head) ─────────── */
     header {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
@@ -187,17 +236,12 @@
     .search-empty { padding: 12px; font-size: 13px; color: var(--muted); text-align: center; }
 
     /* ── Map section ─────────────────────────── */
-    .map-section {
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      overflow: hidden;
-      background: var(--surface);
-    }
+    /* map-section is now just the map-col — no wrapper needed */
+    .map-section { display: contents; }
 
     .map-wrap {
       position: relative;
-      height: 58vh;
-      min-height: 420px;
+      height: 100%;
     }
 
     #map {
@@ -233,8 +277,7 @@
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 12px;
       backdrop-filter: blur(12px);
-      padding: 14px 16px;
-      width: 260px;
+      padding: 12px 14px;
       pointer-events: none;
       transition: opacity 0.3s;
     }
@@ -244,9 +287,7 @@
     .wx-top {
       display: flex;
       align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      gap: 8px;
+      gap: 10px;
     }
 
     .wx-temp-block {}
@@ -475,14 +516,10 @@
 
     .time-tick { font-size: 10px; color: var(--muted2); }
 
-    /* ── Chart + forecast row ────────────────── */
+    /* ── Chart + forecast — stacked in panel ─── */
     .bottom-row {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: 10px;
+      display: contents; /* children flow naturally in panel-body flex column */
     }
-
-    @media (max-width: 640px) { .bottom-row { grid-template-columns: 1fr; } }
 
     .card {
       background: var(--surface);
@@ -527,7 +564,7 @@
       flex-direction: column;
       gap: 2px;
       overflow-y: auto;
-      max-height: 280px;
+      max-height: none;
       scrollbar-width: thin;
       scrollbar-color: var(--surface3) transparent;
     }
@@ -567,9 +604,9 @@
       font-size: 10px;
       color: var(--muted2);
       display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 4px;
+      flex-direction: column;
+      gap: 2px;
+      margin-top: auto;
     }
 
     /* Loader */
@@ -610,52 +647,70 @@
   <div class="loader-text" id="loaderText">Hämtar väderdata…</div>
 </div>
 
-<div class="app">
+<div class="layout">
 
-  <!-- Header -->
-  <header>
-    <div class="header-title">Väder</div>
-    <div class="location-pill">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      <span id="locationName">Falun, Dalarna</span>
-    </div>
-    <div class="live-dot"></div>
+  <!-- LEFT: Map -->
+  <div class="map-col">
+    <div class="map-section">
+      <div class="map-wrap">
+        <div id="map"></div>
 
-    <button class="locate-btn" id="locateBtn" title="Använd min position">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2" opacity=".4"/></svg>
-      Min position
-    </button>
-
-    <div class="search-wrap" id="searchWrap">
-      <div class="search-row">
-        <span class="search-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        </span>
-        <input type="text" id="searchInput" class="search-input" placeholder="Sök ort…" autocomplete="off" spellcheck="false">
-        <div class="search-spinner" id="searchSpinner"></div>
-      </div>
-      <div class="search-dropdown" id="searchDropdown"></div>
-    </div>
-  </header>
-
-  <!-- Map + time slider -->
-  <div class="map-section">
-    <div class="map-wrap">
-      <div id="map"></div>
-
-      <!-- Weather data overlay -->
-      <div class="wx-overlay" id="wxOverlay">
-        <div class="wx-top">
-          <div class="wx-temp-block">
-            <div class="wx-temp" id="wxTemp">–</div>
-            <div class="wx-feels">Känns som <b id="wxFeels">–</b>°C</div>
-          </div>
-          <div class="wx-cond">
-            <div class="wx-cond-icon" id="wxIcon">–</div>
-            <div class="wx-cond-text" id="wxCond">Laddar…</div>
+        <!-- Minimal map overlay: temp + condition only -->
+        <div class="wx-overlay" id="wxOverlay">
+          <div class="wx-top">
+            <div class="wx-temp-block">
+              <div class="wx-temp" id="wxTemp">–</div>
+              <div class="wx-feels">Känns som <b id="wxFeels">–</b>°C</div>
+            </div>
+            <div class="wx-cond">
+              <div class="wx-cond-icon" id="wxIcon">–</div>
+              <div class="wx-cond-text" id="wxCond">Laddar…</div>
+            </div>
           </div>
         </div>
-        <div class="wx-divider"></div>
+
+        <!-- Alert -->
+        <div class="wx-alert" id="wxAlert"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Panel -->
+  <div class="panel-col">
+
+    <!-- Panel header -->
+    <div class="panel-head">
+      <header>
+        <div class="header-title">Väder</div>
+        <div class="location-pill">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="locationName">Falun, Dalarna</span>
+        </div>
+        <div class="live-dot"></div>
+      </header>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button class="locate-btn" id="locateBtn" title="Använd min position">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2" opacity=".4"/></svg>
+          Min position
+        </button>
+        <div class="search-wrap" id="searchWrap" style="flex:1;max-width:none;margin-left:0;">
+          <div class="search-row">
+            <span class="search-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </span>
+            <input type="text" id="searchInput" class="search-input" placeholder="Sök ort…" autocomplete="off" spellcheck="false">
+            <div class="search-spinner" id="searchSpinner"></div>
+          </div>
+          <div class="search-dropdown" id="searchDropdown"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel body (scrollable) -->
+    <div class="panel-body">
+
+      <!-- Weather stats -->
+      <div class="card" style="padding:12px 14px;">
         <div class="wx-stats">
           <div class="wx-stat">
             <span class="wx-stat-icon">💨</span>
@@ -690,56 +745,54 @@
         </div>
       </div>
 
-      <!-- Alert -->
-      <div class="wx-alert" id="wxAlert"></div>
-    </div>
-
-    <!-- Time slider -->
-    <div class="time-bar">
-      <div class="time-bar-top">
-        <span class="time-badge" id="timeBadge">Nu</span>
-        <span class="time-datetime" id="timeDisplay">–</span>
-        <span class="time-label">Prognos · 10 dagar</span>
-      </div>
-      <input type="range" id="timeSlider" min="0" max="239" value="0" step="1">
-      <div class="time-ticks">
-        <span class="time-tick">Nu</span>
-        <span class="time-tick">+2d</span>
-        <span class="time-tick">+4d</span>
-        <span class="time-tick">+6d</span>
-        <span class="time-tick">+8d</span>
-        <span class="time-tick">+10d</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Chart + forecast -->
-  <div class="bottom-row">
-    <div class="card">
-      <div class="chart-header">
-        <div class="card-label" style="margin:0">Tidsserie · 24h</div>
-        <div class="chart-tabs">
-          <button class="chart-tab active" data-param="t">Temp</button>
-          <button class="chart-tab" data-param="ws">Vind</button>
-          <button class="chart-tab" data-param="msl">Tryck</button>
-          <button class="chart-tab" data-param="r">Fukt</button>
+      <!-- Time slider -->
+      <div class="time-bar" style="border-radius:var(--radius);border:1px solid var(--border);">
+        <div class="time-bar-top">
+          <span class="time-badge" id="timeBadge">Nu</span>
+          <span class="time-datetime" id="timeDisplay">–</span>
+          <span class="time-label">10 dagar</span>
+        </div>
+        <input type="range" id="timeSlider" min="0" max="239" value="0" step="1">
+        <div class="time-ticks">
+          <span class="time-tick">Nu</span>
+          <span class="time-tick">+2d</span>
+          <span class="time-tick">+4d</span>
+          <span class="time-tick">+6d</span>
+          <span class="time-tick">+8d</span>
+          <span class="time-tick">+10d</span>
         </div>
       </div>
-      <canvas id="mainChart" height="120"></canvas>
-    </div>
 
-    <div class="card">
-      <div class="card-label">Timprognos</div>
-      <div class="forecast-scroll" id="forecastStrip"></div>
-    </div>
-  </div>
+      <!-- Chart + forecast -->
+      <div class="bottom-row">
+        <div class="card">
+          <div class="chart-header">
+            <div class="card-label" style="margin:0">Tidsserie · 24h</div>
+            <div class="chart-tabs">
+              <button class="chart-tab active" data-param="t">Temp</button>
+              <button class="chart-tab" data-param="ws">Vind</button>
+              <button class="chart-tab" data-param="msl">Tryck</button>
+              <button class="chart-tab" data-param="r">Fukt</button>
+            </div>
+          </div>
+          <canvas id="mainChart" height="120"></canvas>
+        </div>
 
-  <footer>
-    <span>SMHI Öppna Data · CC BY 4.0 · Karta © OpenStreetMap / CARTO</span>
-    <span id="footerCoords">60.6065°N 15.6355°E</span>
-  </footer>
+        <div class="card">
+          <div class="card-label">Timprognos</div>
+          <div class="forecast-scroll" id="forecastStrip"></div>
+        </div>
+      </div>
 
-</div>
+      <footer>
+        <span>SMHI Öppna Data · CC BY 4.0 · Karta © OSM / CARTO</span>
+        <span id="footerCoords">60.6065°N 15.6355°E</span>
+      </footer>
+
+    </div><!-- /panel-body -->
+  </div><!-- /panel-col -->
+
+</div><!-- /layout -->
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -877,6 +930,9 @@ function dist2(a, b) {
 // ═══════════════════════════════════════
 const map = L.map('map', {zoomControl: true, attributionControl: true})
   .setView([lat, lon], 8);
+
+// Ensure map fills its column correctly after DOM layout
+setTimeout(() => map.invalidateSize(), 0);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OSM</a>',
