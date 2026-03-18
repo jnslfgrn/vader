@@ -28,6 +28,43 @@
       --radius: 10px;
     }
 
+    /* ── Light mode ───────────────────────────── */
+    html.light {
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+      --surface2: #eef0f3;
+      --surface3: #dde0e6;
+      --border: rgba(0,0,0,0.09);
+      --border-hi: rgba(0,0,0,0.18);
+      --text: #111318;
+      --muted: #7a7f8a;
+      --muted2: #b0b5bf;
+      --accent: #2563eb;
+      --accent-dim: rgba(37,99,235,0.12);
+      --green: #16a34a;
+      --amber: #d97706;
+      --red: #dc2626;
+    }
+
+    html.light .leaflet-tile { filter: none; }
+    html.light .leaflet-container { background: #e8eaed; }
+    html.light .leaflet-control-attribution { background: rgba(255,255,255,0.7) !important; color: #888 !important; }
+    html.light .leaflet-control-zoom a { background: rgba(255,255,255,0.9) !important; color: #333 !important; border-color: rgba(0,0,0,0.12) !important; }
+    html.light .city-marker-inner { background: rgba(255,255,255,0.88); border-color: rgba(0,0,0,0.12); }
+    html.light .city-marker-inner::after { border-top-color: rgba(0,0,0,0.12); }
+    html.light .city-marker.active .city-marker-inner { background: rgba(235,245,255,0.95); border-color: var(--accent); }
+    html.light .city-marker.active .city-marker-inner::after { border-top-color: var(--accent); }
+    html.light .cm-name { color: rgba(0,0,0,0.45); }
+    html.light .wx-overlay { background: rgba(255,255,255,0.88); border-color: rgba(0,0,0,0.1); }
+    html.light .wx-temp { text-shadow: none; }
+    html.light .wx-feels { color: var(--muted); }
+    html.light .wx-feels b { color: #333; }
+    html.light .wx-cond-text { color: rgba(0,0,0,0.5); }
+    html.light .wx-stat-unit { color: var(--muted); }
+    html.light .wx-stat-val { color: #222; }
+    html.light .wx-alert { background: rgba(220,38,38,0.08); border-color: rgba(220,38,38,0.3); color: #b91c1c; }
+    html.light .main-marker-ring { border-color: rgba(255,255,255,0.95); }
+
     html, body { height: 100%; overflow: hidden; }
 
     body {
@@ -156,6 +193,22 @@
     }
 
     .locate-btn.loading svg { animation: spin 0.8s linear infinite; }
+
+    .theme-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px; height: 30px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .theme-btn:hover { border-color: var(--border-hi); color: var(--text); }
 
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
@@ -689,6 +742,9 @@
         <div class="live-dot"></div>
       </header>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <button class="theme-btn" id="themeBtn" title="Växla ljust/mörkt läge">
+          <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
         <button class="locate-btn" id="locateBtn" title="Använd min position">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2" opacity=".4"/></svg>
           Min position
@@ -934,11 +990,13 @@ const map = L.map('map', {zoomControl: true, attributionControl: true})
 // Ensure map fills its column correctly after DOM layout
 setTimeout(() => map.invalidateSize(), 0);
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-  subdomains: 'abcd',
-  maxZoom: 19
-}).addTo(map);
+const TILES = {
+  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+};
+const TILE_ATTR = '© <a href="https://carto.com/">CARTO</a> © <a href="https://www.openstreetmap.org/copyright">OSM</a>';
+
+let tileLayer = L.tileLayer(TILES.dark, {attribution: TILE_ATTR, subdomains: 'abcd', maxZoom: 19}).addTo(map);
 
 // Main location marker
 const mainIcon = L.divIcon({
@@ -1373,6 +1431,32 @@ async function fetchAll() {
 }
 
 window.addEventListener('resize', () => renderChart(currentIdx));
+
+// ═══════════════════════════════════════
+//  Theme toggle
+// ═══════════════════════════════════════
+const themeBtn  = document.getElementById('themeBtn');
+const themeIcon = document.getElementById('themeIcon');
+
+const SUN_SVG  = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+const MOON_SVG = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+
+let isLight = localStorage.getItem('theme') === 'light';
+
+function applyTheme() {
+  document.documentElement.classList.toggle('light', isLight);
+  themeIcon.innerHTML = isLight ? SUN_SVG : MOON_SVG;
+  // Swap map tiles
+  tileLayer.setUrl(isLight ? TILES.light : TILES.dark);
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+}
+
+themeBtn.addEventListener('click', () => {
+  isLight = !isLight;
+  applyTheme();
+});
+
+applyTheme(); // apply saved preference on load
 
 // ═══════════════════════════════════════
 //  Geolocation
