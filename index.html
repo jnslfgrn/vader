@@ -635,7 +635,7 @@ function renderChart(startIdx) {
   // Grid lines + labels
   cx.strokeStyle = 'rgba(56,148,198,0.08)';
   cx.lineWidth = 1;
-  cx.fillStyle = 'rgba(180,206,222,0.28)';
+  cx.fillStyle = 'rgba(180,206,222,0.72)';
   cx.font = '9px Inter, sans-serif';
   cx.textAlign = 'right';
   for (let i = 0; i <= 3; i++) {
@@ -668,7 +668,7 @@ function renderChart(startIdx) {
   cx.stroke();
 
   // X labels
-  cx.fillStyle = 'rgba(180,206,222,0.28)';
+  cx.fillStyle = 'rgba(180,206,222,0.72)';
   cx.textAlign = 'center';
   vals.forEach((_,i) => { if (i%4===0) cx.fillText(labels[i]+'h', px(i), H-5); });
 
