@@ -18,33 +18,7 @@
 
 <div class="layout">
 
-  <!-- LEFT: Map -->
-  <div class="map-col">
-    <div class="map-section">
-      <div class="map-wrap">
-        <div id="map"></div>
-
-        <!-- Minimal map overlay: temp + condition only -->
-        <div class="wx-overlay" id="wxOverlay">
-          <div class="wx-top">
-            <div class="wx-temp-block">
-              <div class="wx-temp" id="wxTemp">–</div>
-              <div class="wx-feels">Känns som <b id="wxFeels">–</b>°C</div>
-            </div>
-            <div class="wx-cond">
-              <div class="wx-cond-icon" id="wxIcon">–</div>
-              <div class="wx-cond-text" id="wxCond">Laddar…</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Alert -->
-        <div class="wx-alert" id="wxAlert"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT: Panel -->
+  <!-- LEFT: Panel -->
   <div class="panel-col">
 
     <!-- Panel header -->
@@ -165,6 +139,35 @@
 
     </div><!-- /panel-body -->
   </div><!-- /panel-col -->
+
+  <!-- Resize handle -->
+  <div class="resize-handle" id="resizeHandle"></div>
+
+  <!-- RIGHT: Map -->
+  <div class="map-col">
+    <div class="map-section">
+      <div class="map-wrap">
+        <div id="map"></div>
+
+        <!-- Minimal map overlay: temp + condition only -->
+        <div class="wx-overlay" id="wxOverlay">
+          <div class="wx-top">
+            <div class="wx-temp-block">
+              <div class="wx-temp" id="wxTemp">–</div>
+              <div class="wx-feels">Känns som <b id="wxFeels">–</b>°C</div>
+            </div>
+            <div class="wx-cond">
+              <div class="wx-cond-icon" id="wxIcon">–</div>
+              <div class="wx-cond-text" id="wxCond">Laddar…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alert -->
+        <div class="wx-alert" id="wxAlert"></div>
+      </div>
+    </div>
+  </div>
 
 </div><!-- /layout -->
 
@@ -810,6 +813,41 @@ locateBtn.addEventListener('click', () => {
     },
     { timeout: 10000, maximumAge: 60000, enableHighAccuracy: true }
   );
+});
+
+// ═══════════════════════════════════════
+//  Resizable panel
+// ═══════════════════════════════════════
+const panelColEl = document.querySelector('.panel-col');
+const resizeHandleEl = document.getElementById('resizeHandle');
+const PANEL_MIN = 280, PANEL_MAX = 620;
+let isResizing = false;
+
+const savedPanelWidth = localStorage.getItem('panelWidth');
+if (savedPanelWidth) panelColEl.style.width = savedPanelWidth + 'px';
+
+resizeHandleEl.addEventListener('mousedown', e => {
+  isResizing = true;
+  resizeHandleEl.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+
+window.addEventListener('mousemove', e => {
+  if (!isResizing) return;
+  const w = Math.min(PANEL_MAX, Math.max(PANEL_MIN, e.clientX));
+  panelColEl.style.width = w + 'px';
+  renderChart(currentIdx);
+});
+
+window.addEventListener('mouseup', () => {
+  if (!isResizing) return;
+  isResizing = false;
+  resizeHandleEl.classList.remove('dragging');
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  localStorage.setItem('panelWidth', parseInt(panelColEl.style.width));
 });
 
 // ═══════════════════════════════════════
