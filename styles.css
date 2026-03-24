@@ -341,11 +341,10 @@ header {
 }
 .leaflet-control-zoom a:hover { background: var(--surface2) !important; color: var(--text) !important; }
 
-.leaflet-tile { filter: brightness(0.82) saturate(0.6) hue-rotate(8deg); }
+.leaflet-tile { filter: brightness(0.92) saturate(0.95); }
 
 /* Light mode overrides */
-html.light .leaflet-tile { filter: none; }
-html.light .leaflet-container { background: #e8eaed; }
+html.light .leaflet-container { background: #1a1a2e; }
 html.light .leaflet-control-attribution { background: rgba(255,255,255,0.75) !important; color: #888 !important; }
 html.light .leaflet-control-zoom a { background: rgba(255,255,255,0.92) !important; color: #333 !important; border-color: rgba(0,0,0,0.12) !important; }
 html.light .city-marker-inner { background: rgba(255,255,255,0.92); border-color: rgba(0,0,0,0.09); }
