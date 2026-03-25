@@ -518,7 +518,7 @@ const map = L.map('map', {zoomControl: true, attributionControl: true})
   .setView([lat, lon], 8);
 
 // Ensure map fills its column correctly after DOM layout
-setTimeout(() => map.invalidateSize(), 0);
+setTimeout(() => { map.invalidateSize(); positionWxOverlay(); }, 0);
 
 const TILES = {
   dark:  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -537,6 +537,15 @@ const mainIcon = L.divIcon({
 });
 
 const mainMarker = L.marker([lat, lon], {icon: mainIcon, draggable: true}).addTo(map);
+
+function positionWxOverlay() {
+  const pt = map.latLngToContainerPoint([lat, lon]);
+  const overlay = document.getElementById('wxOverlay');
+  overlay.style.left = pt.x + 'px';
+  overlay.style.top  = pt.y + 'px';
+}
+
+map.on('move zoom resize', positionWxOverlay);
 
 mainMarker.on('dragend', () => {
   const p = mainMarker.getLatLng();
@@ -571,11 +580,9 @@ function buildCityIcon(city) {
   return L.divIcon({
     html: `<div class="city-marker" id="${id}">
       <div class="city-marker-inner">
+        <span class="cm-icon">…</span>
+        <span class="cm-temp">–</span>
         <div class="cm-name">${city.n}</div>
-        <div class="cm-row">
-          <span class="cm-icon">…</span>
-          <span class="cm-temp">–</span>
-        </div>
       </div>
     </div>`,
     className: '',
@@ -957,6 +964,7 @@ async function fetchAll() {
   } finally {
     document.getElementById('loader').classList.add('gone');
     document.getElementById('wxOverlay').classList.remove('loading');
+    positionWxOverlay();
   }
 }
 

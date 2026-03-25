@@ -383,12 +383,12 @@ header {
 html.light .leaflet-container { background: #1a1a2e; }
 html.light .leaflet-control-attribution { background: rgba(255,255,255,0.75) !important; color: #888 !important; }
 html.light .leaflet-control-zoom a { background: rgba(255,255,255,0.92) !important; color: #333 !important; border-color: rgba(0,0,0,0.12) !important; }
-html.light .city-marker-inner { background: rgba(255,255,255,0.92); border-color: rgba(0,0,0,0.09); }
-html.light .city-marker-inner::after { border-top-color: rgba(0,0,0,0.09); }
-html.light .city-marker.active .city-marker-inner { background: rgba(224,248,245,0.97); border-color: var(--accent); }
+html.light .city-marker-inner { background: rgba(255,255,255,0.93); border-color: rgba(0,0,0,0.10); }
+html.light .city-marker-inner::after { border-top-color: rgba(0,0,0,0.10); }
+html.light .city-marker.active .city-marker-inner { background: rgba(220,248,245,0.97); border-color: var(--accent); }
 html.light .city-marker.active .city-marker-inner::after { border-top-color: var(--accent); }
 html.light .cm-name { color: var(--muted); }
-html.light .wx-overlay { background: rgba(255,255,255,0.92); border-color: rgba(0,0,0,0.08); }
+html.light .wx-overlay { background: rgba(220, 248, 250, 0.96); border-color: rgba(13, 148, 136, 0.5); }
 html.light .wx-temp { text-shadow: none; }
 html.light .wx-feels { color: var(--muted); }
 html.light .wx-feels b { color: #1a2a36; }
@@ -402,17 +402,17 @@ html.light .main-marker-ring { border-color: rgba(255,255,255,0.96); }
 /* ── Weather Overlay ─────────────────────────── */
 .wx-overlay {
   position: absolute;
-  bottom: 16px;
-  left: 16px;
   z-index: 500;
-  background: rgba(4, 12, 20, 0.88);
-  border: 1px solid rgba(45, 212, 191, 0.16);
+  background: rgba(10, 60, 70, 0.94);
+  border: 1.5px solid rgba(45, 212, 191, 0.55);
   border-radius: 10px;
   backdrop-filter: blur(18px);
   padding: 14px 16px;
   pointer-events: none;
-  transition: opacity 0.3s;
+  transition: opacity 0.3s, left 0.15s, top 0.15s;
   min-width: 185px;
+  box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.08), 0 8px 32px rgba(0,0,0,0.6);
+  transform: translate(-50%, calc(-100% - 20px));
 }
 
 .wx-overlay.loading { opacity: 0.4; }
@@ -565,45 +565,49 @@ html.light .main-marker-ring { border-color: rgba(255,255,255,0.96); }
   transition: transform 0.15s, filter 0.15s;
 }
 
-.city-marker:hover { transform: translate(-50%, -100%) scale(1.07); filter: brightness(1.15); }
+.city-marker:hover { transform: translate(-50%, -100%) scale(1.1); filter: brightness(1.2); }
 
 .city-marker-inner {
-  background: rgba(4, 12, 20, 0.9);
-  border: 1px solid rgba(45, 212, 191, 0.14);
-  border-radius: 6px;
+  background: rgba(4, 12, 20, 0.88);
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  border-radius: 10px;
   backdrop-filter: blur(10px);
-  padding: 5px 9px 4px;
-  min-width: 68px;
+  padding: 8px 12px 7px;
+  min-width: 60px;
   text-align: center;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.55);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
 .city-marker-inner::after {
   content: '';
   position: absolute;
-  bottom: -5px; left: 50%;
+  bottom: -6px; left: 50%;
   transform: translateX(-50%);
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid rgba(45, 212, 191, 0.14);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid rgba(45, 212, 191, 0.18);
 }
 
 .city-marker.active .city-marker-inner { border-color: var(--accent); background: rgba(8, 28, 38, 0.95); }
 .city-marker.active .city-marker-inner::after { border-top-color: var(--accent); }
 
+.cm-icon { font-size: 30px; line-height: 1.1; }
+.cm-temp { font-size: 15px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .cm-name {
-  font-size: 9px;
+  font-size: 8px;
   color: var(--muted2);
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-bottom: 2px;
+  letter-spacing: 0.06em;
+  margin-top: 1px;
+  white-space: nowrap;
 }
-
-.cm-row { display: flex; align-items: center; justify-content: center; gap: 4px; }
-.cm-icon { font-size: 12px; line-height: 1; }
-.cm-temp { font-size: 14px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.cm-row { display: contents; }
 
 /* ── Main Location Marker ────────────────────── */
 .main-marker { transform: translate(-50%, -50%); }
