@@ -36,7 +36,7 @@
           <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
       </header>
-      <div class="header-actions">
+      <div class="header-actions" id="weatherActions">
         <button class="locate-btn" id="locateBtn" title="Använd min position">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="2 2" opacity=".4"/></svg>
           Min position
@@ -52,10 +52,35 @@
           <div class="search-dropdown" id="searchDropdown"></div>
         </div>
       </div>
+      <div class="view-tabs">
+        <button class="view-tab active" data-view="weather">Väder</button>
+        <button class="view-tab" data-view="route">Rutt</button>
+      </div>
     </div>
 
     <!-- Panel body (scrollable) -->
     <div class="panel-body">
+
+      <!-- Time slider (shared between views) -->
+      <div class="time-bar" style="border-radius:var(--radius);border:1px solid var(--border);">
+        <div class="time-bar-top">
+          <span class="time-badge" id="timeBadge">Nu</span>
+          <span class="time-datetime" id="timeDisplay">–</span>
+          <span class="time-label">10 dagar</span>
+        </div>
+        <input type="range" id="timeSlider" min="0" max="239" value="0" step="1">
+        <div class="time-ticks">
+          <span class="time-tick">Nu</span>
+          <span class="time-tick">+2d</span>
+          <span class="time-tick">+4d</span>
+          <span class="time-tick">+6d</span>
+          <span class="time-tick">+8d</span>
+          <span class="time-tick">+10d</span>
+        </div>
+      </div>
+
+      <!-- Weather panel -->
+      <div id="weatherPanel">
 
       <!-- Weather stats -->
       <div class="card" style="padding:12px 14px;">
@@ -93,24 +118,6 @@
         </div>
       </div>
 
-      <!-- Time slider -->
-      <div class="time-bar" style="border-radius:var(--radius);border:1px solid var(--border);">
-        <div class="time-bar-top">
-          <span class="time-badge" id="timeBadge">Nu</span>
-          <span class="time-datetime" id="timeDisplay">–</span>
-          <span class="time-label">10 dagar</span>
-        </div>
-        <input type="range" id="timeSlider" min="0" max="239" value="0" step="1">
-        <div class="time-ticks">
-          <span class="time-tick">Nu</span>
-          <span class="time-tick">+2d</span>
-          <span class="time-tick">+4d</span>
-          <span class="time-tick">+6d</span>
-          <span class="time-tick">+8d</span>
-          <span class="time-tick">+10d</span>
-        </div>
-      </div>
-
       <!-- Chart + forecast -->
       <div class="bottom-row">
         <div class="card">
@@ -136,6 +143,59 @@
         <span>SMHI Öppna Data · CC BY 4.0 · Karta © OSM / CARTO</span>
         <span id="footerCoords">60.6065°N 15.6355°E</span>
       </footer>
+
+      </div><!-- /weatherPanel -->
+
+      <!-- Route panel -->
+      <div id="routePanel" hidden>
+
+        <div class="route-search-group">
+          <div class="route-search-label">Från</div>
+          <div class="search-wrap">
+            <div class="search-row">
+              <span class="search-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+              <input type="text" id="routeFromInput" class="search-input" placeholder="Startplats…" autocomplete="off" spellcheck="false">
+              <div class="search-spinner" id="routeFromSpinner"></div>
+            </div>
+            <div class="search-dropdown" id="routeFromDropdown"></div>
+          </div>
+
+          <div class="route-search-label">Till</div>
+          <div class="search-wrap">
+            <div class="search-row">
+              <span class="search-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+              <input type="text" id="routeToInput" class="search-input" placeholder="Destination…" autocomplete="off" spellcheck="false">
+              <div class="search-spinner" id="routeToSpinner"></div>
+            </div>
+            <div class="search-dropdown" id="routeToDropdown"></div>
+          </div>
+
+          <button class="route-calc-btn" id="routeCalcBtn" disabled>Beräkna rutt</button>
+        </div>
+
+        <div class="card route-summary" id="routeSummary" hidden>
+          <div class="route-summary-route">
+            <span class="route-summary-loc" id="routeFromLabel">–</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;opacity:.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            <span class="route-summary-loc" id="routeToLabel">–</span>
+          </div>
+          <div class="route-summary-stats">
+            <div class="route-stat">
+              <div class="route-stat-val" id="routeDistVal">–</div>
+              <div class="route-stat-label">Distans</div>
+            </div>
+            <div class="route-stat">
+              <div class="route-stat-val" id="routeDurVal">–</div>
+              <div class="route-stat-label">Restid (bil)</div>
+            </div>
+          </div>
+        </div>
+
+        <footer>
+          <span>OSRM · ODbL · SMHI Öppna Data · CC BY 4.0</span>
+        </footer>
+
+      </div><!-- /routePanel -->
 
     </div><!-- /panel-body -->
   </div><!-- /panel-col -->
@@ -649,6 +709,245 @@ function updateAllCityMarkers(idx) {
 }
 
 // ═══════════════════════════════════════
+//  Route view
+// ═══════════════════════════════════════
+let activeView  = 'weather';
+let routeFrom   = null; // {lat, lon, label}
+let routeTo     = null; // {lat, lon, label}
+let routeLayer  = L.layerGroup().addTo(map);
+let routeStore  = {}; // key → {series, marker}
+let routePoints = []; // [{lat, lon, distKm}]
+let routePolyline = null;
+
+function switchView(view) {
+  activeView = view;
+  document.getElementById('weatherPanel').hidden  = view !== 'weather';
+  document.getElementById('routePanel').hidden    = view !== 'route';
+  document.getElementById('weatherActions').hidden = view !== 'weather';
+  document.querySelectorAll('.view-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.view === view));
+
+  if (view === 'weather') {
+    if (!map.hasLayer(cityLayer)) cityLayer.addTo(map);
+    document.getElementById('wxOverlay').style.display = '';
+    if (!map.hasLayer(mainMarker)) mainMarker.addTo(map);
+  } else {
+    if (map.hasLayer(cityLayer)) cityLayer.remove();
+    document.getElementById('wxOverlay').style.display = 'none';
+    if (map.hasLayer(mainMarker)) mainMarker.remove();
+  }
+}
+
+document.querySelectorAll('.view-tab').forEach(btn => {
+  btn.addEventListener('click', () => switchView(btn.dataset.view));
+});
+
+function haversineKm(a, b) {
+  const R = 6371;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLon = (b.lon - a.lon) * Math.PI / 180;
+  const s = Math.sin(dLat/2)**2 +
+            Math.cos(a.lat * Math.PI/180) * Math.cos(b.lat * Math.PI/180) *
+            Math.sin(dLon/2)**2;
+  return R * 2 * Math.asin(Math.sqrt(Math.min(1, s)));
+}
+
+function sampleRoutePoints(coords, intervalKm = 10) {
+  // coords: [[lon, lat], ...] from OSRM GeoJSON
+  const pts = [];
+  let accumulated = 0;
+  let nextTarget = 0;
+  pts.push({lat: coords[0][1], lon: coords[0][0], distKm: 0});
+  nextTarget = intervalKm;
+  for (let i = 1; i < coords.length; i++) {
+    const prev = {lat: coords[i-1][1], lon: coords[i-1][0]};
+    const curr = {lat: coords[i][1],   lon: coords[i][0]};
+    const seg  = haversineKm(prev, curr);
+    while (accumulated + seg >= nextTarget) {
+      const t = (nextTarget - accumulated) / seg;
+      pts.push({
+        lat:    prev.lat + t * (curr.lat - prev.lat),
+        lon:    prev.lon + t * (curr.lon - prev.lon),
+        distKm: nextTarget,
+      });
+      nextTarget += intervalKm;
+    }
+    accumulated += seg;
+  }
+  const last = {lat: coords[coords.length-1][1], lon: coords[coords.length-1][0], distKm: accumulated};
+  if (haversineKm(pts[pts.length-1], last) > 2) pts.push(last);
+  return pts;
+}
+
+function updateRouteMarkerAt(key, series, idx) {
+  if (!series || !series.length) return;
+  const item = series[Math.min(idx, series.length - 1)];
+  const t    = getP(item.parameters, 't');
+  const tcc  = getP(item.parameters, 'tcc_mean');
+  const pcat = getP(item.parameters, 'pcat');
+  const el   = document.getElementById(key);
+  if (!el) return;
+  el.querySelector('.cm-icon').textContent = weatherIcon(pcat, tcc, t);
+  const tempEl = el.querySelector('.cm-temp');
+  tempEl.textContent = t !== null ? t.toFixed(1) + '°' : '–';
+  tempEl.className = 'cm-temp ' + tempClass(t);
+}
+
+function updateRouteMarkersAt(idx) {
+  Object.entries(routeStore).forEach(([key, store]) => {
+    if (store.series) updateRouteMarkerAt(key, store.series, idx);
+  });
+}
+
+function setupRouteSearch(inputId, dropdownId, spinnerId, onSelect) {
+  const input    = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  const spinner  = document.getElementById(spinnerId);
+  let timer = null;
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 2) { dropdown.classList.remove('open'); dropdown.innerHTML = ''; return; }
+    timer = setTimeout(async () => {
+      spinner.classList.add('show');
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5&countrycodes=se&addressdetails=1&accept-language=sv`);
+        const results = await res.json();
+        dropdown.innerHTML = '';
+        if (!results.length) {
+          dropdown.innerHTML = '<div class="search-empty">Inga resultat</div>';
+        } else {
+          results.forEach(r => {
+            const a = r.address || {};
+            const name = a.city || a.town || a.village || a.municipality || r.display_name.split(',')[0];
+            const sub  = [a.county, a.state].filter(Boolean).join(', ') || r.type;
+            const el   = document.createElement('div');
+            el.className = 'search-result';
+            el.innerHTML = `<div class="search-result-name">${name}</div><div class="search-result-sub">${sub}</div>`;
+            el.addEventListener('click', () => {
+              input.value = sub ? `${name}, ${sub}` : name;
+              dropdown.classList.remove('open');
+              dropdown.innerHTML = '';
+              onSelect({lat: parseFloat(r.lat), lon: parseFloat(r.lon), label: input.value});
+            });
+            dropdown.appendChild(el);
+          });
+        }
+        dropdown.classList.add('open');
+      } catch (_) {
+        dropdown.innerHTML = '<div class="search-empty">Sökning misslyckades</div>';
+        dropdown.classList.add('open');
+      } finally {
+        spinner.classList.remove('show');
+      }
+    }, 400);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { dropdown.classList.remove('open'); input.blur(); }
+  });
+}
+
+// Close route dropdowns on outside click
+document.addEventListener('click', e => {
+  ['routeFromDropdown','routeToDropdown'].forEach(id => {
+    const dd = document.getElementById(id);
+    if (dd && !dd.previousElementSibling.contains(e.target)) {
+      dd.classList.remove('open');
+    }
+  });
+});
+
+function checkRouteReady() {
+  document.getElementById('routeCalcBtn').disabled = !(routeFrom && routeTo);
+}
+
+setupRouteSearch('routeFromInput', 'routeFromDropdown', 'routeFromSpinner', loc => {
+  routeFrom = loc; checkRouteReady();
+});
+setupRouteSearch('routeToInput', 'routeToDropdown', 'routeToSpinner', loc => {
+  routeTo = loc; checkRouteReady();
+});
+
+document.getElementById('routeCalcBtn').addEventListener('click', calculateRoute);
+
+async function calculateRoute() {
+  if (!routeFrom || !routeTo) return;
+  const btn = document.getElementById('routeCalcBtn');
+  btn.disabled = true;
+  btn.textContent = 'Beräknar…';
+  document.getElementById('routeSummary').hidden = true;
+
+  routeLayer.clearLayers();
+  routeStore = {};
+  routePoints = [];
+  if (routePolyline) { routePolyline.remove(); routePolyline = null; }
+
+  try {
+    const url = `https://router.project-osrm.org/route/v1/driving/${routeFrom.lon},${routeFrom.lat};${routeTo.lon},${routeTo.lat}?overview=full&geometries=geojson`;
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (!data.routes || !data.routes.length) throw new Error('Ingen rutt hittades');
+
+    const route   = data.routes[0];
+    const coords  = route.geometry.coordinates;
+    const distKm  = (route.distance / 1000).toFixed(1);
+    const durMin  = Math.round(route.duration / 60);
+    const durH    = Math.floor(durMin / 60), durM = durMin % 60;
+
+    const latLngs = coords.map(c => [c[1], c[0]]);
+    routePolyline = L.polyline(latLngs, {
+      color: '#2dd4bf', weight: 3, opacity: 0.75, dashArray: '8 5'
+    }).addTo(routeLayer);
+    map.fitBounds(routePolyline.getBounds(), {padding: [40, 40]});
+
+    routePoints = sampleRoutePoints(coords, 10);
+    routePoints.forEach((pt, i) => {
+      const key = `rp-${i}`;
+      const icon = L.divIcon({
+        html: `<div class="city-marker" id="${key}">
+          <div class="city-marker-inner">
+            <span class="cm-icon">…</span>
+            <span class="cm-temp">–</span>
+            <div class="cm-name">${Math.round(pt.distKm)} km</div>
+          </div>
+        </div>`,
+        className: '', iconSize: [0,0], iconAnchor: [0,0],
+      });
+      const marker = L.marker([pt.lat, pt.lon], {icon}).addTo(routeLayer);
+      routeStore[key] = {series: null, marker};
+    });
+
+    document.getElementById('routeDistVal').textContent  = distKm + ' km';
+    document.getElementById('routeDurVal').textContent   = durH > 0 ? `${durH}h ${durM}min` : `${durM} min`;
+    document.getElementById('routeFromLabel').textContent = routeFrom.label;
+    document.getElementById('routeToLabel').textContent   = routeTo.label;
+    document.getElementById('routeSummary').hidden = false;
+
+    const fetches = routePoints.map(async (pt, i) => {
+      const key = `rp-${i}`;
+      try {
+        const wxUrl = `https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/${pt.lon.toFixed(4)}/lat/${pt.lat.toFixed(4)}/data.json`;
+        const wxRes = await fetch(wxUrl);
+        if (!wxRes.ok) return;
+        const wxData = await wxRes.json();
+        routeStore[key].series = wxData.timeSeries;
+        updateRouteMarkerAt(key, wxData.timeSeries, currentIdx);
+      } catch (_) {}
+    });
+    await Promise.all(fetches);
+
+  } catch (e) {
+    console.error(e);
+    alert('Kunde inte beräkna rutten: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Beräkna rutt';
+  }
+}
+
+// ═══════════════════════════════════════
 //  Reverse geocode
 // ═══════════════════════════════════════
 async function reverseGeocode(rlat, rlon) {
@@ -748,6 +1047,7 @@ slider.addEventListener('input', () => {
   slider.style.setProperty('--fill', (currentIdx / +slider.max * 100) + '%');
   renderFrame(currentIdx);
   updateAllCityMarkers(currentIdx);
+  updateRouteMarkersAt(currentIdx);
 });
 
 // ═══════════════════════════════════════
