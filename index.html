@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Väderleksrapport - JNSLFGRN</title>
+  <title>Väd
+    erleksrapport - JNSLFGRN</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="lib/leaflet.css">
@@ -721,17 +722,25 @@ let routePolyline = null;
 
 function switchView(view) {
   activeView = view;
-  document.getElementById('weatherPanel').hidden  = view !== 'weather';
-  document.getElementById('routePanel').hidden    = view !== 'route';
-  document.getElementById('weatherActions').hidden = view !== 'weather';
+  document.getElementById('weatherPanel').hidden = view !== 'weather';
+  document.getElementById('routePanel').hidden   = view !== 'route';
+  document.getElementById('weatherActions').style.display = view === 'weather' ? '' : 'none';
   document.querySelectorAll('.view-tab').forEach(b =>
     b.classList.toggle('active', b.dataset.view === view));
 
   if (view === 'weather') {
+    // Clear route from map
+    routeLayer.clearLayers();
+    routeStore = {};
+    routePoints = [];
+    if (routePolyline) { routePolyline.remove(); routePolyline = null; }
+    document.getElementById('routeSummary').hidden = true;
+    // Restore weather layers
     if (!map.hasLayer(cityLayer)) cityLayer.addTo(map);
     document.getElementById('wxOverlay').style.display = '';
     if (!map.hasLayer(mainMarker)) mainMarker.addTo(map);
   } else {
+    // Clear weather layers from map
     if (map.hasLayer(cityLayer)) cityLayer.remove();
     document.getElementById('wxOverlay').style.display = 'none';
     if (map.hasLayer(mainMarker)) mainMarker.remove();
