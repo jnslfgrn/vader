@@ -986,3 +986,58 @@ html.light .route-calc-btn:hover:not(:disabled) { background: rgba(13,148,136,0.
   letter-spacing: 0.07em;
   margin-top: 3px;
 }
+
+/* ── Route mode buttons ──────────────────────── */
+.route-mode-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.route-mode-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.route-mode-btn:hover { background: var(--surface3); color: var(--text); }
+
+.route-mode-btn.active {
+  background: var(--accent-dim);
+  border-color: rgba(45, 212, 191, 0.3);
+  color: var(--accent);
+}
+
+html.light .route-mode-btn { background: var(--surface2); color: var(--muted); }
+html.light .route-mode-btn.active { background: rgba(13,148,136,0.1); border-color: rgba(13,148,136,0.3); color: var(--accent); }
+
+/* ── Route datetime input ────────────────────── */
+.route-datetime-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--display);
+  font-size: 12px;
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+  color-scheme: dark;
+}
+
+.route-datetime-input:focus { border-color: var(--accent); }
+
+html.light .route-datetime-input { color-scheme: light; background: var(--surface); border-color: var(--border); color: var(--text); }

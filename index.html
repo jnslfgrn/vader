@@ -62,8 +62,8 @@
     <!-- Panel body (scrollable) -->
     <div class="panel-body">
 
-      <!-- Time slider (shared between views) -->
-      <div class="time-bar" style="border-radius:var(--radius);border:1px solid var(--border);">
+      <!-- Time slider (weather view only) -->
+      <div id="timeBar" class="time-bar" style="border-radius:var(--radius);border:1px solid var(--border);">
         <div class="time-bar-top">
           <span class="time-badge" id="timeBadge">Nu</span>
           <span class="time-datetime" id="timeDisplay">–</span>
@@ -151,6 +151,25 @@
       <div id="routePanel" hidden>
 
         <div class="route-search-group">
+          <div class="route-search-label">Färdmedel</div>
+          <div class="route-mode-btns">
+            <button class="route-mode-btn active" data-mode="driving">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="3"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M2 12h20M7 7l2-4h6l2 4"/></svg>
+              Bil
+            </button>
+            <button class="route-mode-btn" data-mode="bike">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 11l3-5h4l2 5"/><path d="M9 11H5.5"/></svg>
+              Cykel
+            </button>
+            <button class="route-mode-btn" data-mode="foot">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M7.5 22l1.5-5 2.5 2 3-7"/><path d="M16 22l-1-4-2.5-2"/><path d="M9.5 11.5l1-3.5 3 1.5 2-3"/></svg>
+              Gång
+            </button>
+          </div>
+
+          <div class="route-search-label">Avresetid</div>
+          <input type="datetime-local" id="routeDeparture" class="route-datetime-input">
+
           <div class="route-search-label">Från</div>
           <div class="search-wrap">
             <div class="search-row">
@@ -187,7 +206,7 @@
             </div>
             <div class="route-stat">
               <div class="route-stat-val" id="routeDurVal">–</div>
-              <div class="route-stat-label">Restid (bil)</div>
+              <div class="route-stat-label" id="routeDurLabel">Restid</div>
             </div>
           </div>
         </div>
@@ -712,19 +731,24 @@ function updateAllCityMarkers(idx) {
 // ═══════════════════════════════════════
 //  Route view
 // ═══════════════════════════════════════
-let activeView  = 'weather';
-let routeFrom   = null; // {lat, lon, label}
-let routeTo     = null; // {lat, lon, label}
-let routeLayer  = L.layerGroup().addTo(map);
-let routeStore  = {}; // key → {series, marker}
-let routePoints = []; // [{lat, lon, distKm}]
-let routePolyline = null;
+let activeView        = 'weather';
+let routeFrom         = null; // {lat, lon, label}
+let routeTo           = null; // {lat, lon, label}
+let routeMode         = 'driving'; // 'driving' | 'bike' | 'foot'
+let routeLayer        = L.layerGroup().addTo(map);
+let routeStore        = {}; // key → {series, marker}
+let routePoints       = []; // [{lat, lon, distKm}]
+let routePolyline     = null;
+let routeTotalDistM   = 0;  // meters
+let routeTotalDurS    = 0;  // seconds
+let routeDepartureTime = new Date();
 
 function switchView(view) {
   activeView = view;
   document.getElementById('weatherPanel').hidden = view !== 'weather';
   document.getElementById('routePanel').hidden   = view !== 'route';
   document.getElementById('weatherActions').style.display = view === 'weather' ? '' : 'none';
+  document.getElementById('timeBar').style.display = view === 'weather' ? '' : 'none';
   document.querySelectorAll('.view-tab').forEach(b =>
     b.classList.toggle('active', b.dataset.view === view));
 
@@ -750,6 +774,65 @@ function switchView(view) {
 document.querySelectorAll('.view-tab').forEach(btn => {
   btn.addEventListener('click', () => switchView(btn.dataset.view));
 });
+
+// ── Transport mode ─────────────────────────────
+document.querySelectorAll('.route-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.route-mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    routeMode = btn.dataset.mode;
+  });
+});
+
+// ── Departure time helpers ─────────────────────
+function toDatetimeLocal(d) {
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function initDeparturePicker() {
+  const inp = document.getElementById('routeDeparture');
+  const now = new Date();
+  const max = new Date(now.getTime() + 10 * 24 * 3600 * 1000);
+  inp.min   = toDatetimeLocal(now);
+  inp.max   = toDatetimeLocal(max);
+  inp.value = toDatetimeLocal(now);
+  routeDepartureTime = now;
+}
+initDeparturePicker();
+
+document.getElementById('routeDeparture').addEventListener('change', e => {
+  routeDepartureTime = e.target.value ? new Date(e.target.value) : new Date();
+  renderRouteWeather();
+});
+
+// ── Time-aware route weather ───────────────────
+function getArrivalTime(distKm) {
+  if (!routeTotalDistM) return routeDepartureTime;
+  const fraction   = (distKm * 1000) / routeTotalDistM;
+  const durAtPoint = routeTotalDurS * fraction * 1000; // ms
+  return new Date(routeDepartureTime.getTime() + durAtPoint);
+}
+
+function findSmhiIndex(series, targetTime) {
+  const t = targetTime.getTime();
+  let bestIdx = 0, bestDiff = Infinity;
+  series.forEach((item, i) => {
+    const diff = Math.abs(new Date(item.validTime).getTime() - t);
+    if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+  });
+  return bestIdx;
+}
+
+function renderRouteWeather() {
+  routePoints.forEach((pt, i) => {
+    const key   = `rp-${i}`;
+    const store = routeStore[key];
+    if (!store?.series) return;
+    const idx = findSmhiIndex(store.series, getArrivalTime(pt.distKm));
+    updateRouteMarkerAt(key, store.series, idx);
+  });
+};
 
 function haversineKm(a, b) {
   const R = 6371;
@@ -894,16 +977,19 @@ async function calculateRoute() {
   if (routePolyline) { routePolyline.remove(); routePolyline = null; }
 
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${routeFrom.lon},${routeFrom.lat};${routeTo.lon},${routeTo.lat}?overview=full&geometries=geojson`;
+    const url = `https://router.project-osrm.org/route/v1/${routeMode}/${routeFrom.lon},${routeFrom.lat};${routeTo.lon},${routeTo.lat}?overview=full&geometries=geojson`;
     const res  = await fetch(url);
     const data = await res.json();
     if (!data.routes || !data.routes.length) throw new Error('Ingen rutt hittades');
 
     const route   = data.routes[0];
     const coords  = route.geometry.coordinates;
+    routeTotalDistM = route.distance;
+    routeTotalDurS  = route.duration;
     const distKm  = (route.distance / 1000).toFixed(1);
     const durMin  = Math.round(route.duration / 60);
     const durH    = Math.floor(durMin / 60), durM = durMin % 60;
+    const modeLabel = {driving:'Bil', bike:'Cykel', foot:'Gång'}[routeMode];
 
     const latLngs = coords.map(c => [c[1], c[0]]);
     routePolyline = L.polyline(latLngs, {
@@ -928,8 +1014,9 @@ async function calculateRoute() {
       routeStore[key] = {series: null, marker};
     });
 
-    document.getElementById('routeDistVal').textContent  = distKm + ' km';
-    document.getElementById('routeDurVal').textContent   = durH > 0 ? `${durH}h ${durM}min` : `${durM} min`;
+    document.getElementById('routeDistVal').textContent   = distKm + ' km';
+    document.getElementById('routeDurVal').textContent    = durH > 0 ? `${durH}h ${durM}min` : `${durM} min`;
+    document.getElementById('routeDurLabel').textContent  = `Restid · ${modeLabel}`;
     document.getElementById('routeFromLabel').textContent = routeFrom.label;
     document.getElementById('routeToLabel').textContent   = routeTo.label;
     document.getElementById('routeSummary').hidden = false;
@@ -942,7 +1029,8 @@ async function calculateRoute() {
         if (!wxRes.ok) return;
         const wxData = await wxRes.json();
         routeStore[key].series = wxData.timeSeries;
-        updateRouteMarkerAt(key, wxData.timeSeries, currentIdx);
+        const idx = findSmhiIndex(wxData.timeSeries, getArrivalTime(pt.distKm));
+        updateRouteMarkerAt(key, wxData.timeSeries, idx);
       } catch (_) {}
     });
     await Promise.all(fetches);
