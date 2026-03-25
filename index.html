@@ -151,6 +151,7 @@
 
         <!-- Minimal map overlay: temp + condition only -->
         <div class="wx-overlay" id="wxOverlay">
+          <div class="wx-overlay-name" id="wxOverlayName">–</div>
           <div class="wx-top">
             <div class="wx-temp-block">
               <div class="wx-temp" id="wxTemp">–</div>
@@ -782,6 +783,7 @@ function renderFrame(idx) {
   const pmean = getP(p, 'pmean');
 
   // Overlay
+  document.getElementById('wxOverlayName').textContent = locationLabel || '–';
   const tempEl = document.getElementById('wxTemp');
   tempEl.textContent = t !== null ? t.toFixed(1) + '°' : '–';
   tempEl.className = 'wx-temp ' + tempClass(t);

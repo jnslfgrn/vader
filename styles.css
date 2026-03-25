@@ -393,6 +393,7 @@ html.light .wx-temp { text-shadow: none; }
 html.light .wx-feels { color: var(--muted); }
 html.light .wx-feels b { color: #1a2a36; }
 html.light .wx-cond-text { color: var(--muted); }
+html.light .wx-overlay-name { color: rgba(13, 148, 136, 0.9); }
 html.light .fcast-desc { color: var(--muted2); }
 html.light .wx-stat-unit { color: var(--muted); }
 html.light .wx-stat-val { color: #1a2a36; }
@@ -450,7 +451,16 @@ html.light .main-marker-ring { border-color: rgba(255,255,255,0.96); }
   flex: 1;
 }
 
-.wx-cond-icon { font-size: 30px; line-height: 1; }
+.wx-overlay-name {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(45, 212, 191, 0.75);
+  margin-bottom: 6px;
+}
+
+.wx-cond-icon { font-size: 30px; line-height: 1.1; }
 
 .wx-cond-text {
   font-size: 10px;
