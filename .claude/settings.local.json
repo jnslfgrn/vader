@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(curl -sO https://unpkg.com/leaflet@1.9.4/dist/leaflet.js)",
+      "Bash(curl -sO https://unpkg.com/leaflet@1.9.4/dist/leaflet.css)",
+      "Bash(curl -sL \"https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png\" -o /Users/jonaslofgren/vader/lib/images/marker-icon.png)",
+      "Bash(curl -sL \"https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png\" -o /Users/jonaslofgren/vader/lib/images/marker-icon-2x.png)",
+      "Bash(curl -sL \"https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png\" -o /Users/jonaslofgren/vader/lib/images/marker-shadow.png)",
+      "Bash(curl -sL \"https://unpkg.com/leaflet@1.9.4/dist/images/layers.png\" -o /Users/jonaslofgren/vader/lib/images/layers.png)",
+      "Bash(curl -sL \"https://unpkg.com/leaflet@1.9.4/dist/images/layers-2x.png\" -o /Users/jonaslofgren/vader/lib/images/layers-2x.png)",
+      "Bash(curl -s \"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap\" -H \"User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36\")",
+      "Bash(curl -sL \"https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2\" -o /Users/jonaslofgren/vader/lib/fonts/inter-latin.woff2)",
+      "Bash(curl -sL \"https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7W0Q5n-wU.woff2\" -o /Users/jonaslofgren/vader/lib/fonts/inter-latin-ext.woff2)"
+    ]
+  }
+}
