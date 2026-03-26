@@ -617,8 +617,6 @@ html.light .main-marker-ring { border-color: rgba(255,255,255,0.96); }
   margin-top: 1px;
   white-space: nowrap;
 }
-.cm-row { display: contents; }
-
 /* ── Main Location Marker ────────────────────── */
 .main-marker { transform: translate(-50%, -50%); }
 
