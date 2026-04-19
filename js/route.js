@@ -248,7 +248,7 @@ async function calculateRoute() {
         routeStore[key].series = wxData.timeSeries;
         const idx = findSmhiIndex(wxData.timeSeries, getArrivalTime(pt.distKm));
         updateRouteMarkerAt(key, wxData.timeSeries, idx);
-      } catch (_) {}
+      } catch (e) { console.error('SMHI route fetch failed:', key, e); }
     });
     await Promise.allSettled(fetches);
 

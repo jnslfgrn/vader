@@ -217,9 +217,9 @@ function renderForecast(startIdx) {
 
 // ── fetchMainWeather ─────────────────────────────────────────────────────────
 async function fetchMainWeather() {
-  const url = `${API.smhi}/lon/${lon}/lat/${lat}/data.json`;
+  const url = `${API.smhi}/lon/${lon.toFixed(4)}/lat/${lat.toFixed(4)}/data.json`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  if (!res.ok) throw new Error(`HTTP ${res.status} – URL: ${url}`);
   const data = await res.json();
   allSeries  = data.timeSeries;
   currentIdx = 0;

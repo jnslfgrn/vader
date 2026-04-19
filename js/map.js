@@ -103,13 +103,13 @@ async function loadNearbyCities() {
 
   const fetches = nearbyCities.map(async city => {
     try {
-      const url = `${API.smhi}/lon/${city.lon}/lat/${city.lat}/data.json`;
+      const url = `${API.smhi}/lon/${city.lon.toFixed(4)}/lat/${city.lat.toFixed(4)}/data.json`;
       const res  = await fetch(url);
       if (!res.ok) return;
       const data = await res.json();
       cityStore[city.n].series = data.timeSeries;
       updateCityMarkerAt(city.n, currentIdx);
-    } catch (_) {}
+    } catch (e) { console.error('SMHI city fetch failed:', city.n, e); }
   });
 
   await Promise.allSettled(fetches);
